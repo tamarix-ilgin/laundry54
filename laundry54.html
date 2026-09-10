@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laundry54</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #EDEAE2;
+    --card: #F7F5F0;
+    --ink: #232B26;
+    --muted: #6B7268;
+    --free: #3E7A57;
+    --running: #B5432B;
+    --overdue: #C97A26;
+    --accent: #2E4A43;
+    --accent-ink: #FFFFFF;
+    --line: #D8D3C4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 26px 16px 50px;
+  }
+
+  h1 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: 0.2px;
+    margin: 0 0 3px;
+    line-height: 1.1;
+  }
+
+  .clock {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 20px;
+  }
+
+  .mine-banner {
+    display: none;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .mine-banner.show { display: block; }
+  .mine-banner button {
+    margin-top: 8px;
+    background: var(--accent-ink);
+    color: var(--accent);
+    border: none;
+  }
+
+  .list {
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: none; }
+
+  .dot { font-size: 13px; line-height: 1; flex-shrink: 0; }
+
+  .name {
+    font-weight: 600;
+    font-size: 14.5px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+  .status.running { color: var(--running); font-weight: 600; }
+  .status.overdue { color: var(--overdue); font-weight: 600; }
+  .status.free { color: var(--free); font-weight: 600; }
+
+  button {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    border-radius: 5px;
+    border: 2px solid var(--ink);
+    background: var(--ink);
+    color: #fff;
+    padding: 7px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  button.ghost {
+    background: transparent;
+    color: var(--muted);
+    border-color: transparent;
+    text-decoration: underline;
+    font-weight: 500;
+    padding: 4px 2px;
+  }
+
+  .queue-banner {
+    margin-top: 12px;
+    background: var(--card);
+    border: 2px dashed var(--muted);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .queue-banner p { margin: 0; line-height: 1.5; }
+  .queue-banner.joined { border-style: solid; border-color: var(--accent); }
+  .queue-banner.urgent {
+    border-style: solid;
+    border-color: var(--free);
+    background: #E3EEE6;
+  }
+  .queue-banner.urgent p { font-weight: 600; color: var(--free); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(35,43,38,0.55);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    position: relative;
+    background: var(--card);
+    width: 100%;
+    max-width: 360px;
+    border-radius: 14px;
+    padding: 26px 22px 22px;
+    border: 2px solid var(--ink);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: transparent;
+    color: var(--ink);
+    border: none;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal h2 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 20px;
+    padding-right: 20px;
+    line-height: 1.2;
+  }
+
+  .hm-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .hm-field {
+    flex: 1;
+  }
+  .hm-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .hm-field input {
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    padding: 12px 6px;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .hm-sep {
+    padding-bottom: 14px;
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .modal-text {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 20px;
+  }
+
+  .modal button.start {
+    width: 100%;
+    padding: 13px;
+    font-size: 14.5px;
+  }
+
+  footer {
+    margin-top: 26px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Laundry54</h1>
+  <div class="clock" id="clock"></div>
+
+  <div class="mine-banner" id="mineBanner"></div>
+
+  <div class="list" id="list"></div>
+
+  <div id="queueBanners"></div>
+
+  <footer>
+    No names, no accounts — just a random anonymous ID kept on this device, so we know which machine you started. Only you can end your cycle early; once time's up, any neighbor can mark it free. Notifications only work while this page stays open in a tab; closing it fully will stop them.
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    <h2 id="modalTitle">Set a timer for Washing Machine 1</h2>
+    <div class="hm-row">
+      <div class="hm-field">
+        <label for="hoursInput">Hours</label>
+        <input type="number" id="hoursInput" min="0" max="5" placeholder="0" inputmode="numeric" onfocus="this.placeholder=''" onblur="if(!this.value) this.placeholder='0'">
+      </div>
+      <span class="hm-sep">:</span>
+      <div class="hm-field">
+        <label for="minutesInput">Minutes</label>
+        <input type="number" id="minutesInput" min="0" max="59" placeholder="0" inputmode="numeric" onfocus="this.placeholder=''" onblur="if(!this.value) this.placeholder='0'">
+      </div>
+    </div>
+    <button class="start" onclick="confirmStart()">Start timer</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeConfirm()" aria-label="Close">✕</button>
+    <h2 id="confirmTitle">Is this machine actually empty?</h2>
+    <p class="modal-text">Only mark it free once the laundry is out — the next person is trusting this.</p>
+    <button class="start" onclick="confirmMarkFreeYes()">Yes, mark it free</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="welcomeOverlay">
+  <div class="modal">
+    <h2>Welcome to Laundry54</h2>
+    <p class="modal-text">No names, no sign-up. This device gets a random anonymous ID so the board knows which machine you started — nothing else.</p>
+    <button class="start" onclick="continueWelcome()">Continue</button>
+  </div>
+</div>
+
+<script>
+const MACHINES = [
+  { id: 'washer1', label: 'Washing Machine 1', type: 'washers' },
+  { id: 'washer2', label: 'Washing Machine 2', type: 'washers' },
+  { id: 'dryer1',  label: 'Dryer 1',  type: 'dryers' },
+  { id: 'dryer2',  label: 'Dryer 2',  type: 'dryers' },
+];
+const DURATIONS = [45, 90, 120]; // minutes: 45min, 1h30, 2h — plus Custom
+
+let state = null;          // shared: { machines: {...}, queues: { washers:[], dryers:[] } }
+let prevMachines = null;   // for diffing on poll, to catch "just became free" / "just went overdue"
+let device = null;         // personal: { token, mine: [], notifiedDone: [], notifiedOverdueQueue: [], notifyFree: {washers:false, dryers:false} }
+let modalMachineId = null;
+let pendingFreeId = null;
+let ready = false;
+
+function defaultState() {
+  const m = {};
+  MACHINES.forEach(x => m[x.id] = { status: 'free', startedAt: null, durationMin: null });
+  return { machines: m, queues: { washers: [], dryers: [] } };
+}
+
+function randomToken() {
+  return 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+async function init() {
+  try {
+    const shared = await window.storage.get('state', true);
+    state = shared && shared.value ? JSON.parse(shared.value) : defaultState();
+  } catch (e) {
+    state = defaultState();
+  }
+  try {
+    const personal = await window.storage.get('device', false);
+    device = personal && personal.value ? JSON.parse(personal.value) : null;
+  } catch (e) {
+    device = null;
+  }
+  prevMachines = JSON.parse(JSON.stringify(state.machines));
+
+  if (device) {
+    ready = true;
+    render();
+  } else {
+    document.getElementById('welcomeOverlay').className = 'modal-overlay show';
+  }
+}
+
+async function continueWelcome() {
+  device = { token: randomToken(), mine: [], notifiedDone: [], notifiedOverdueQueue: [], notifyFree: { washers: false, dryers: false } };
+  await saveDevice();
+  document.getElementById('welcomeOverlay').className = 'modal-overlay';
+  ready = true;
+  render();
+}
+
+async function saveState() {
+  try { await window.storage.set('state', JSON.stringify(state), true); } catch (e) { /* retry on next poll */ }
+}
+async function saveDevice() {
+  try { await window.storage.set('device', JSON.stringify(device), false); } catch (e) { /* non-fatal */ }
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  let h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+function fmtDuration(min) {
+  if (min < 60) return min + ' min';
+  const h = Math.floor(min / 60), m = min % 60;
+  return m ? `${h}h${m}` : `${h}h`;
+}
+
+function computePhase(s) {
+  const now = Date.now();
+  let phase = 'free', remainMin = 0, overMin = 0, endTs = null;
+  if (s.status === 'running' && s.startedAt && s.durationMin) {
+    endTs = s.startedAt + s.durationMin * 60000;
+    const diff = endTs - now;
+    if (diff > 0) { phase = 'running'; remainMin = Math.ceil(diff / 60000); }
+    else { phase = 'overdue'; overMin = Math.floor(-diff / 60000); }
+  }
+  return { phase, remainMin, overMin, endTs };
+}
+
+function machineView(m) {
+  const s = state.machines[m.id];
+  const { phase, remainMin, overMin, endTs } = computePhase(s);
+  return { s, phase, remainMin, overMin, endTs };
+}
+
+function notify(title, body) {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'granted') {
+    try { new Notification(title, { body }); } catch (e) {}
+  }
+}
+
+function requestPermissionIfNeeded() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function render() {
+  renderList();
+  renderMineBanner();
+  renderQueueBanners();
+  document.getElementById('clock').textContent = fmtTime(Date.now());
+}
+
+function renderList() {
+  const html = MACHINES.map(m => {
+    const { phase, remainMin, overMin } = machineView(m);
+    const isMine = device.mine.includes(m.id);
+    let dot = '🟢', statusClass = 'free', statusText = 'Available';
+    let btn = `<button onclick="openModal('${m.id}')">Start</button>`;
+    if (phase === 'running') {
+      dot = '🔴'; statusClass = 'running'; statusText = `${remainMin} min`;
+      btn = isMine
+        ? `<button class="secondary" onclick="askMarkFree('${m.id}')">Finish</button>`
+        : `<button class="secondary" disabled style="opacity:.4;cursor:default;">Running</button>`;
+    } else if (phase === 'overdue') {
+      dot = '🟠'; statusClass = 'overdue'; statusText = `${overMin} min over`;
+      btn = `<button class="secondary" onclick="askMarkFree('${m.id}')">Mark free</button>`;
+    }
+    return `
+      <div class="row">
+        <span class="dot">${dot}</span>
+        <span class="name">${m.label}</span>
+        <span class="status ${statusClass}">${statusText}</span>
+        ${btn}
+      </div>
+    `;
+  }).join('');
+  document.getElementById('list').innerHTML = html;
+}
+
+function renderMineBanner() {
+  const el = document.getElementById('mineBanner');
+  const finishedMine = device.mine.filter(id => {
+    const { phase } = machineView(MACHINES.find(m => m.id === id));
+    return phase === 'overdue';
+  });
+  if (finishedMine.length === 0) {
+    el.className = 'mine-banner';
+    el.innerHTML = '';
+    return;
+  }
+  const label = MACHINES.find(m => m.id === finishedMine[0]).label;
+  el.className = 'mine-banner show';
+  el.innerHTML = `🧺 ${label} is finished — grab your laundry and mark the machine as free.
+    <div><button onclick="askMarkFree('${finishedMine[0]}')">Mark free</button></div>`;
+}
+
+function renderQueueBanners() {
+  const container = document.getElementById('queueBanners');
+  let html = '';
+  ['washers', 'dryers'].forEach(type => {
+    const ms = MACHINES.filter(m => m.type === type);
+    const allBusy = ms.every(m => machineView(m).phase !== 'free');
+    const queue = state.queues[type] || [];
+    const iAmIn = queue.some(q => q.token === device.token);
+    const typeLabel = type === 'washers' ? 'washing machine' : 'dryer';
+    const typeLabelPlural = type === 'washers' ? 'Washing machines' : 'Dryers';
+
+    if (iAmIn) {
+      const pos = queue.findIndex(q => q.token === device.token) + 1;
+      const spotOpen = ms.some(m => machineView(m).phase === 'free');
+      if (spotOpen) {
+        html += `
+          <div class="queue-banner joined urgent">
+            <p>🧺 A ${typeLabel} just opened up — you're #${pos} in line, go grab it!</p>
+            <button class="ghost" onclick="leaveQueue('${type}')">Leave</button>
+          </div>`;
+      } else {
+        html += `
+          <div class="queue-banner joined">
+            <p>You're #${pos} in line for a ${typeLabel}.</p>
+            <button class="ghost" onclick="leaveQueue('${type}')">Leave</button>
+          </div>`;
+      }
+    } else if (allBusy) {
+      const waiting = queue.length;
+      const waitingText = waiting > 0 ? `👤 ${waiting} neighbor${waiting > 1 ? 's' : ''} waiting.` : 'Be the first to wait.';
+      html += `
+        <div class="queue-banner">
+          <p>${typeLabelPlural} are full.<br>${waitingText}</p>
+          <button onclick="joinQueue('${type}')">Join queue</button>
+        </div>`;
+    }
+  });
+  container.innerHTML = html;
+}
+
+function openModal(machineId) {
+  modalMachineId = machineId;
+  const m = MACHINES.find(x => x.id === machineId);
+  document.getElementById('modalTitle').textContent = `Set a timer for ${m.label}`;
+  document.getElementById('hoursInput').value = '';
+  document.getElementById('hoursInput').placeholder = '0';
+  document.getElementById('minutesInput').value = '';
+  document.getElementById('minutesInput').placeholder = '0';
+  document.getElementById('modalOverlay').className = 'modal-overlay show';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').className = 'modal-overlay';
+  modalMachineId = null;
+}
+
+async function confirmStart() {
+  if (!modalMachineId) return;
+  const hours = parseInt(document.getElementById('hoursInput').value, 10) || 0;
+  const mins = parseInt(document.getElementById('minutesInput').value, 10) || 0;
+  const minutes = hours * 60 + mins;
+  if (minutes <= 0) {
+    document.getElementById('hoursInput').focus();
+    return;
+  }
+
+  requestPermissionIfNeeded();
+
+  state.machines[modalMachineId] = { status: 'running', startedAt: Date.now(), durationMin: minutes };
+  if (!device.mine.includes(modalMachineId)) device.mine.push(modalMachineId);
+  device.notifiedDone = device.notifiedDone.filter(id => id !== modalMachineId);
+
+  closeModal();
+  render();
+  await saveState();
+  await saveDevice();
+}
+
+async function markFree(machineId) {
+  state.machines[machineId] = { status: 'free', startedAt: null, durationMin: null };
+  device.mine = device.mine.filter(id => id !== machineId);
+  device.notifiedDone = device.notifiedDone.filter(id => id !== machineId);
+  device.notifiedOverdueQueue = device.notifiedOverdueQueue.filter(id => id !== machineId);
+  render();
+  await saveState();
+  await saveDevice();
+}
+
+function askMarkFree(machineId) {
+  pendingFreeId = machineId;
+  const m = MACHINES.find(x => x.id === machineId);
+  document.getElementById('confirmTitle').textContent = `Is ${m.label} actually empty?`;
+  document.getElementById('confirmOverlay').className = 'modal-overlay show';
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').className = 'modal-overlay';
+  pendingFreeId = null;
+}
+
+async function confirmMarkFreeYes() {
+  if (!pendingFreeId) return;
+  const id = pendingFreeId;
+  closeConfirm();
+  await markFree(id);
+}
+
+async function joinQueue(type) {
+  requestPermissionIfNeeded();
+  if (!state.queues[type].some(q => q.token === device.token)) {
+    state.queues[type].push({ token: device.token, joinedAt: Date.now() });
+  }
+  device.notifyFree[type] = true;
+  render();
+  await saveState();
+  await saveDevice();
+}
+
+async function leaveQueue(type) {
+  state.queues[type] = state.queues[type].filter(q => q.token !== device.token);
+  device.notifyFree[type] = false;
+  render();
+  await saveState();
+  await saveDevice();
+}
+
+// local per-second refresh for live countdowns + check "my machine just finished"
+setInterval(async () => {
+  if (!ready || !state) return;
+  device.mine.forEach(id => {
+    const { phase } = machineView(MACHINES.find(m => m.id === id));
+    if (phase === 'overdue' && !device.notifiedDone.includes(id)) {
+      const label = MACHINES.find(m => m.id === id).label;
+      notify('🧺 Laundry finished', `Your ${label} is done.`);
+      device.notifiedDone.push(id);
+      saveDevice();
+    }
+  });
+  render();
+}, 1000);
+
+// poll shared state every 8s to sync with neighbors + fire notifications
+setInterval(async () => {
+  if (!ready || !state) return;
+  try {
+    const shared = await window.storage.get('state', true);
+    const fresh = shared && shared.value ? JSON.parse(shared.value) : defaultState();
+
+    // heads-up: a machine you're queued for just finished its cycle — hurry, it's about to be free
+    MACHINES.forEach(m => {
+      const wasOverdue = computePhase(prevMachines[m.id]).phase === 'overdue';
+      const nowOverdue = computePhase(fresh.machines[m.id]).phase === 'overdue';
+      const iAmQueued = (fresh.queues[m.type] || []).some(q => q.token === device.token);
+      if (!wasOverdue && nowOverdue && iAmQueued && !device.notifiedOverdueQueue.includes(m.id)) {
+        notify('🧺 Cycle finished', `${m.label} just finished — hurry down, it should be free soon.`);
+        device.notifiedOverdueQueue.push(m.id);
+        saveDevice();
+      }
+      if (fresh.machines[m.id].status === 'free') {
+        device.notifiedOverdueQueue = device.notifiedOverdueQueue.filter(id => id !== m.id);
+      }
+    });
+
+    // a spot is open for a type you're waiting on — checked directly each poll,
+    // not just on the busy-to-free transition, so a missed poll can't hide it
+    ['washers', 'dryers'].forEach(type => {
+      const ms = MACHINES.filter(m => m.type === type);
+      const someFree = ms.some(m => fresh.machines[m.id].status === 'free');
+      if (someFree && device.notifyFree[type]) {
+        const label = type === 'washers' ? 'A washing machine' : 'A dryer';
+        notify('🧺 Spot open', `${label} is available now.`);
+        device.notifyFree[type] = false;
+        fresh.queues[type] = (fresh.queues[type] || []).filter(q => q.token !== device.token);
+        window.storage.set('state', JSON.stringify(fresh), true).catch(() => {});
+        saveDevice();
+      }
+    });
+
+    prevMachines = JSON.parse(JSON.stringify(fresh.machines));
+    state = fresh;
+    render();
+  } catch (e) { /* keep last known state, try again next tick */ }
+}, 8000);
+
+init();
+</script>
+</body>
+</html>
